@@ -1,0 +1,11 @@
+GROUP,PACKAGE,CLASS,INSTRUCTION_MISSED,INSTRUCTION_COVERED,BRANCH_MISSED,BRANCH_COVERED,LINE_MISSED,LINE_COVERED,COMPLEXITY_MISSED,COMPLEXITY_COVERED,METHOD_MISSED,METHOD_COVERED
+Gestor de Inventario,com.inventario,GestorInventarioERP.BotonEstilizado,77,0,4,0,20,0,4,0,2,0
+Gestor de Inventario,com.inventario,Movimiento,0,101,0,10,0,29,0,11,0,6
+Gestor de Inventario,com.inventario,TipoMovimiento,0,28,0,0,0,7,0,3,0,3
+Gestor de Inventario,com.inventario,GestorInventarioERP.TarjetasRounded,74,0,0,0,17,0,2,0,2,0
+Gestor de Inventario,com.inventario,GestorInventarioERP.BotonEstilizado.new MouseAdapter() {...},22,0,0,0,7,0,3,0,3,0
+Gestor de Inventario,com.inventario,GestorInventarioERP.new DefaultTableModel() {...},10,0,0,0,2,0,2,0,2,0
+Gestor de Inventario,com.inventario,App,175,0,8,0,58,0,9,0,3,0
+Gestor de Inventario,com.inventario,GestorInventarioERP.new DefaultTableCellRenderer() {...},47,0,4,0,13,0,4,0,2,0
+Gestor de Inventario,com.inventario,GestorInventarioERP,1098,0,6,0,243,0,17,0,14,0
+Gestor de Inventario,com.inventario,Producto,0,245,0,22,0,60,0,28,0,17

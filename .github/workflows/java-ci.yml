@@ -1,0 +1,30 @@
+name: Java CI
+
+on:
+  push:
+    branches: [ main ]
+
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  test:
+
+    runs-on: ubuntu-latest
+
+    steps:
+
+    - name: Clonar repositorio
+      uses: actions/checkout@v4
+
+    - name: Configurar JDK 17
+      uses: actions/setup-java@v4
+      with:
+        java-version: '17'
+        distribution: 'temurin'
+
+    - name: Compilar proyecto
+      run: mvn compile
+
+    - name: Ejecutar pruebas JUnit
+      run: mvn test
