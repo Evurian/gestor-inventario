@@ -2,11 +2,13 @@ package com.inventario;
 
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.EnumSource;
 
 import static org.junit.jupiter.api.Assertions.*;
 
+@Nested
 @DisplayName("Pruebas del enum TipoMovimiento")
 class TipoMovimientoTest {
 
@@ -39,7 +41,7 @@ class TipoMovimientoTest {
     @DisplayName("valueOf con valor inválido lanza excepción")
     void valueOfInvalido() {
         assertThrows(IllegalArgumentException.class,
-            () -> TipoMovimiento.valueOf("INVALIDO"));
+                () -> TipoMovimiento.valueOf("INVALIDO"));
     }
 
     @Test
