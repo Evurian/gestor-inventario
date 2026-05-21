@@ -1,7 +1,6 @@
 package com.inventario;
 
 import io.qameta.allure.Description;
-import io.qameta.allure.Owner;
 import io.qameta.allure.Severity;
 import io.qameta.allure.SeverityLevel;
 
@@ -40,7 +39,6 @@ class MovimientoTest {
         @DisplayName("Crear movimiento de ENTRADA válido")
         @Description("Verifica que un movimiento de entrada se cree correctamente con tipo, cantidad y fecha")
         @Severity(SeverityLevel.CRITICAL)
-        @Owner("Lucas")
         void crearEntradaValida() {
 
             assertAll(
@@ -54,7 +52,6 @@ class MovimientoTest {
         @DisplayName("Crear movimiento de SALIDA válido")
         @Description("Verifica que un movimiento de salida se cree correctamente")
         @Severity(SeverityLevel.CRITICAL)
-        @Owner("Lucas")
         void crearSalidaValida() {
 
             assertAll(
