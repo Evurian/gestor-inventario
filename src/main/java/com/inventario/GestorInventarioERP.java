@@ -9,6 +9,7 @@ import java.awt.*;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
 import java.util.List;
 
 /**
@@ -26,7 +27,7 @@ public class GestorInventarioERP extends JFrame {
     private static final Color COLOR_CARD = Color.WHITE; // Blanco Puro
     private static final Color COLOR_BORDER = new Color(226, 232, 240); // Líneas divisorias
 
-    private static final Color COLOR_SUCCESS = new Color(16, 185, 129); // Entradas (Verde)
+    private static final Color COLOR_SUCCESS = new Color(5, 150, 105); // Entradas (Verde - tonalidad moderada)
     private static final Color COLOR_DANGER = new Color(239, 68, 68); // Salidas (Rojo)
 
     private static final Color COLOR_TEXT_MAIN = new Color(15, 23, 42); // Texto Principal
@@ -39,6 +40,7 @@ public class GestorInventarioERP extends JFrame {
     private static final Font FONT_BODY = new Font("Segoe UI", Font.PLAIN, 12);
 
     // --- ESTADO DE LA APLICACIÓN ---
+    private final java.util.List<Producto> listaProductos = new ArrayList<>();
     private Producto productoActual;
 
     // --- COMPONENTES DE LA INTERFAZ ---
@@ -52,10 +54,15 @@ public class GestorInventarioERP extends JFrame {
     private JTable tablaHistorial;
     private DefaultTableModel modeloTabla;
 
+    // --- SIDEBAR: LISTA DE PRODUCTOS ---
+    private DefaultListModel<String> modeloListaProductos;
+    private JList<String> listaProductosUI;
+    private JButton btnNuevoProducto;
+
     public GestorInventarioERP() {
         setTitle("ERP - Sistema de Gestión de Inventario");
-        setSize(950, 650);
-        setMinimumSize(new Dimension(800, 600));
+        setSize(1150, 680);
+        setMinimumSize(new Dimension(1000, 620));
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         setLocationRelativeTo(null);
 
@@ -93,23 +100,23 @@ public class GestorInventarioERP extends JFrame {
         TarjetasRounded panelRegistro = new TarjetasRounded("1. Información del Producto");
         panelRegistro.setLayout(new GridLayout(5, 2, 10, 15));
 
-        panelRegistro.add(new JLabel("Código Único:"));
+        panelRegistro.add(crearEtiqueta("Código Único:"));
         txtCodigo = new JTextField();
         panelRegistro.add(txtCodigo);
 
-        panelRegistro.add(new JLabel("Nombre del Producto:"));
+        panelRegistro.add(crearEtiqueta("Nombre del Producto:"));
         txtNombre = new JTextField();
         panelRegistro.add(txtNombre);
 
-        panelRegistro.add(new JLabel("Precio Unitario (S/.):"));
+        panelRegistro.add(crearEtiqueta("Precio Unitario (S/.):"));
         txtPrecio = new JTextField();
         panelRegistro.add(txtPrecio);
 
-        panelRegistro.add(new JLabel("Stock Inicial:"));
+        panelRegistro.add(crearEtiqueta("Stock Inicial:"));
         txtCantidadInicial = new JTextField();
         panelRegistro.add(txtCantidadInicial);
 
-        panelRegistro.add(new JLabel("")); // Espacio
+        panelRegistro.add(crearEtiqueta("")); // Espacio
         btnCrearProducto = new BotonEstilizado("Crear y Registrar", COLOR_ACCENT);
         panelRegistro.add(btnCrearProducto);
 
@@ -138,6 +145,7 @@ public class GestorInventarioERP extends JFrame {
         titleS.setForeground(COLOR_ACCENT);
         lblValorStock = new JLabel("0", JLabel.CENTER);
         lblValorStock.setFont(new Font("Segoe UI", Font.BOLD, 20));
+        lblValorStock.setForeground(COLOR_TEXT_MAIN);
         kpiStock.add(titleS, BorderLayout.NORTH);
         kpiStock.add(lblValorStock, BorderLayout.CENTER);
 
@@ -149,6 +157,7 @@ public class GestorInventarioERP extends JFrame {
         titleV.setForeground(COLOR_SUCCESS);
         lblValorInventario = new JLabel("S/. 0.00", JLabel.CENTER);
         lblValorInventario.setFont(new Font("Segoe UI", Font.BOLD, 20));
+        lblValorInventario.setForeground(COLOR_TEXT_MAIN);
         kpiValor.add(titleV, BorderLayout.NORTH);
         kpiValor.add(lblValorInventario, BorderLayout.CENTER);
 
@@ -168,7 +177,7 @@ public class GestorInventarioERP extends JFrame {
         gbcOp.gridwidth = 1;
         gbcOp.weightx = 0.3;
         gbcOp.ipady = 0;
-        panelOperaciones.add(new JLabel("Cantidad a operar:"), gbcOp);
+        panelOperaciones.add(crearEtiqueta("Cantidad a operar:"), gbcOp);
 
         gbcOp.gridx = 1;
         gbcOp.gridy = 1;
@@ -223,9 +232,81 @@ public class GestorInventarioERP extends JFrame {
         areaPrincipal.add(panelHistorial, gbc);
 
         add(areaPrincipal, BorderLayout.CENTER);
+
+        // 3. SIDEBAR DERECHO: LISTA DE PRODUCTOS (EAST)
+        JPanel sidebar = new JPanel(new BorderLayout(0, 0));
+        sidebar.setPreferredSize(new Dimension(240, getHeight()));
+        sidebar.setBackground(Color.WHITE);
+        sidebar.setBorder(BorderFactory.createMatteBorder(0, 1, 0, 0, COLOR_BORDER));
+
+        // Encabezado del sidebar
+        JPanel sidebarHeader = new JPanel(new BorderLayout());
+        sidebarHeader.setBackground(COLOR_PRIMARY);
+        sidebarHeader.setPreferredSize(new Dimension(240, 45));
+        sidebarHeader.setBorder(new EmptyBorder(8, 15, 8, 15));
+        JLabel lblSidebarTitulo = new JLabel("·  PRODUCTOS", JLabel.LEFT);
+        lblSidebarTitulo.setFont(FONT_SUBTITLE);
+        lblSidebarTitulo.setForeground(Color.WHITE);
+        sidebarHeader.add(lblSidebarTitulo, BorderLayout.CENTER);
+        sidebar.add(sidebarHeader, BorderLayout.NORTH);
+
+        // Botón Agregar Producto + Lista
+        JPanel sidebarBody = new JPanel(new BorderLayout(0, 0));
+        sidebarBody.setBackground(Color.WHITE);
+        sidebarBody.setBorder(new EmptyBorder(12, 12, 12, 12));
+
+        btnNuevoProducto = new BotonEstilizado("+ Agregar Producto", COLOR_ACCENT);
+        btnNuevoProducto.setPreferredSize(new Dimension(210, 38));
+        JPanel wrapBtn = new JPanel(new FlowLayout(FlowLayout.CENTER, 0, 0));
+        wrapBtn.setBackground(Color.WHITE);
+        wrapBtn.add(btnNuevoProducto);
+        sidebarBody.add(wrapBtn, BorderLayout.NORTH);
+
+        // Lista de productos
+        modeloListaProductos = new DefaultListModel<>();
+        listaProductosUI = new JList<>(modeloListaProductos);
+        listaProductosUI.setFont(FONT_BODY);
+        listaProductosUI.setFixedCellHeight(44);
+        listaProductosUI.setBackground(Color.WHITE);
+        listaProductosUI.setForeground(COLOR_TEXT_MAIN);
+        listaProductosUI.setSelectionBackground(new Color(219, 234, 254));
+        listaProductosUI.setSelectionForeground(COLOR_TEXT_MAIN);
+        listaProductosUI.setBorder(new EmptyBorder(6, 0, 0, 0));
+
+        // Renderer personalizado para cada item de la lista
+        listaProductosUI.setCellRenderer(new DefaultListCellRenderer() {
+            @Override
+            public Component getListCellRendererComponent(JList<?> list, Object value, int index,
+                    boolean isSelected, boolean cellHasFocus) {
+                JLabel lbl = (JLabel) super.getListCellRendererComponent(list, value, index, isSelected, cellHasFocus);
+                lbl.setFont(FONT_BODY);
+                lbl.setBorder(BorderFactory.createCompoundBorder(
+                        BorderFactory.createMatteBorder(0, 0, 1, 0, COLOR_BORDER),
+                        new EmptyBorder(8, 12, 8, 12)));
+                lbl.setOpaque(true);
+                if (isSelected) {
+                    lbl.setBackground(new Color(219, 234, 254));
+                    lbl.setForeground(COLOR_ACCENT);
+                    lbl.setFont(FONT_BODY_BOLD);
+                } else {
+                    lbl.setBackground(Color.WHITE);
+                    lbl.setForeground(COLOR_TEXT_MAIN);
+                }
+                return lbl;
+            }
+        });
+
+        JScrollPane scrollProductos = new JScrollPane(listaProductosUI);
+        scrollProductos.setBorder(BorderFactory.createLineBorder(COLOR_BORDER));
+        scrollProductos.getViewport().setBackground(Color.WHITE);
+        sidebarBody.add(scrollProductos, BorderLayout.CENTER);
+
+        sidebar.add(sidebarBody, BorderLayout.CENTER);
+        add(sidebar, BorderLayout.EAST);
     }
 
     private void configurarEventos() {
+        // --- CREAR PRODUCTO: agrega a la lista global y sidebar ---
         btnCrearProducto.addActionListener(e -> {
             try {
                 String codigo = txtCodigo.getText().trim();
@@ -233,17 +314,28 @@ public class GestorInventarioERP extends JFrame {
                 double precio = Double.parseDouble(txtPrecio.getText().trim());
                 int cantidad = Integer.parseInt(txtCantidadInicial.getText().trim());
 
-                productoActual = new Producto(codigo, nombre, precio, cantidad);
+                // Verificar código duplicado
+                for (Producto p : listaProductos) {
+                    if (p.getCodigo().equalsIgnoreCase(codigo)) {
+                        mostrarErrorDialog("Ya existe un producto con el código: " + codigo);
+                        return;
+                    }
+                }
 
-                txtCodigo.setEditable(false);
-                txtNombre.setEditable(false);
-                txtPrecio.setEditable(false);
-                txtCantidadInicial.setEditable(false);
-                btnCrearProducto.setEnabled(false);
+                Producto nuevo = new Producto(codigo, nombre, precio, cantidad);
+                listaProductos.add(nuevo);
+                productoActual = nuevo;
 
+                // Agregar a la lista visual del sidebar
+                modeloListaProductos.addElement(codigo + " - " + nombre);
+
+                bloquearFormularioProducto();
                 actualizarVista();
-                JOptionPane.showMessageDialog(this, "Producto registrado correctamente.", "Éxito",
-                        JOptionPane.INFORMATION_MESSAGE);
+
+                // Seleccionar el nuevo producto en la lista
+                listaProductosUI.setSelectedIndex(listaProductos.size() - 1);
+
+                mostrarExitoDialog("Producto registrado correctamente.");
 
             } catch (NumberFormatException ex) {
                 mostrarErrorDialog("Los valores numéricos de precio o cantidad contienen formatos inválidos.");
@@ -252,6 +344,7 @@ public class GestorInventarioERP extends JFrame {
             }
         });
 
+        // --- AGREGAR STOCK ---
         btnAgregarStock.addActionListener(e -> {
             try {
                 int cant = Integer.parseInt(txtCantidadOperacion.getText().trim());
@@ -265,6 +358,7 @@ public class GestorInventarioERP extends JFrame {
             }
         });
 
+        // --- EXTRAER STOCK ---
         btnExtraerStock.addActionListener(e -> {
             try {
                 int cant = Integer.parseInt(txtCantidadOperacion.getText().trim());
@@ -277,6 +371,62 @@ public class GestorInventarioERP extends JFrame {
                 mostrarErrorDialog(ex.getMessage());
             }
         });
+
+        // --- SIDEBAR: Seleccionar producto de la lista ---
+        listaProductosUI.addListSelectionListener(e -> {
+            if (e.getValueIsAdjusting()) return;
+            int index = listaProductosUI.getSelectedIndex();
+            if (index >= 0 && index < listaProductos.size()) {
+                productoActual = listaProductos.get(index);
+                cargarProductoEnFormulario(productoActual);
+                bloquearFormularioProducto();
+                actualizarVista();
+            }
+        });
+
+        // --- SIDEBAR: Botón Agregar Producto (resetea formulario para uno nuevo) ---
+        btnNuevoProducto.addActionListener(e -> {
+            productoActual = null;
+            listaProductosUI.clearSelection();
+            desbloquearFormularioProducto();
+            limpiarFormularioProducto();
+            actualizarVista();
+        });
+    }
+
+    /** Carga los datos de un producto existente en los campos del formulario */
+    private void cargarProductoEnFormulario(Producto p) {
+        txtCodigo.setText(p.getCodigo());
+        txtNombre.setText(p.getNombre());
+        txtPrecio.setText(String.valueOf(p.getPrecio()));
+        txtCantidadInicial.setText(String.valueOf(p.getCantidad()));
+    }
+
+    /** Bloquea los campos del formulario de creación */
+    private void bloquearFormularioProducto() {
+        txtCodigo.setEditable(false);
+        txtNombre.setEditable(false);
+        txtPrecio.setEditable(false);
+        txtCantidadInicial.setEditable(false);
+        btnCrearProducto.setEnabled(false);
+    }
+
+    /** Desbloquea los campos del formulario para crear un nuevo producto */
+    private void desbloquearFormularioProducto() {
+        txtCodigo.setEditable(true);
+        txtNombre.setEditable(true);
+        txtPrecio.setEditable(true);
+        txtCantidadInicial.setEditable(true);
+        btnCrearProducto.setEnabled(true);
+    }
+
+    /** Limpia todos los campos del formulario de creación */
+    private void limpiarFormularioProducto() {
+        txtCodigo.setText("");
+        txtNombre.setText("");
+        txtPrecio.setText("");
+        txtCantidadInicial.setText("");
+        txtCantidadOperacion.setText("");
     }
 
     private void aplicarEstilos() {
@@ -319,10 +469,24 @@ public class GestorInventarioERP extends JFrame {
 
     private void estilizarCampoTexto(JTextField campo) {
         campo.setFont(FONT_BODY);
+        campo.setForeground(COLOR_TEXT_MAIN);
+        campo.setCaretColor(COLOR_TEXT_MAIN);
+        campo.setDisabledTextColor(COLOR_TEXT_MUTED);
         campo.setBorder(BorderFactory.createCompoundBorder(
                 BorderFactory.createLineBorder(COLOR_BORDER, 1),
                 BorderFactory.createEmptyBorder(5, 8, 5, 8)));
         campo.setBackground(Color.WHITE);
+        campo.setOpaque(true);
+        // Forzar colores para evitar que el tema del sistema (GTK) los sobreescriba
+        campo.putClientProperty("JTextField.background", Color.WHITE);
+        campo.putClientProperty("JTextField.foreground", COLOR_TEXT_MAIN);
+    }
+
+    private JLabel crearEtiqueta(String texto) {
+        JLabel etiqueta = new JLabel(texto);
+        etiqueta.setFont(FONT_BODY);
+        etiqueta.setForeground(COLOR_TEXT_MAIN);
+        return etiqueta;
     }
 
     private void configurarEstilosTabla() {
@@ -330,15 +494,37 @@ public class GestorInventarioERP extends JFrame {
         tablaHistorial.setRowHeight(30);
         tablaHistorial.setShowVerticalLines(false);
         tablaHistorial.setGridColor(COLOR_BORDER);
-        tablaHistorial.setSelectionBackground(new Color(239, 246, 255));
+        tablaHistorial.setBackground(Color.WHITE);
+        tablaHistorial.setForeground(COLOR_TEXT_MAIN);
+        tablaHistorial.setSelectionBackground(new Color(37, 99, 235, 40));
         tablaHistorial.setSelectionForeground(COLOR_TEXT_MAIN);
+        tablaHistorial.setOpaque(true);
 
         JTableHeader header = tablaHistorial.getTableHeader();
         header.setFont(FONT_BODY_BOLD);
         header.setBackground(COLOR_PRIMARY);
         header.setForeground(Color.WHITE);
+        header.setOpaque(true);
         header.setReorderingAllowed(false);
         header.setPreferredSize(new Dimension(header.getWidth(), 35));
+
+        // Renderer personalizado con header oscuro propio
+        header.setDefaultRenderer(new DefaultTableCellRenderer() {
+            @Override
+            public Component getTableCellRendererComponent(JTable table, Object value, boolean isSelected,
+                    boolean hasFocus, int row, int column) {
+                JLabel lbl = (JLabel) super.getTableCellRendererComponent(table, value, isSelected, hasFocus, row, column);
+                lbl.setBackground(COLOR_PRIMARY);
+                lbl.setForeground(Color.WHITE);
+                lbl.setFont(FONT_BODY_BOLD);
+                lbl.setHorizontalAlignment(JLabel.CENTER);
+                lbl.setBorder(BorderFactory.createCompoundBorder(
+                        BorderFactory.createMatteBorder(0, 0, 2, 0, COLOR_ACCENT),
+                        BorderFactory.createEmptyBorder(4, 8, 4, 8)));
+                lbl.setOpaque(true);
+                return lbl;
+            }
+        });
 
         DefaultTableCellRenderer centerRenderer = new DefaultTableCellRenderer() {
             @Override
@@ -346,6 +532,15 @@ public class GestorInventarioERP extends JFrame {
                     boolean hasFocus, int row, int column) {
                 Component c = super.getTableCellRendererComponent(table, value, isSelected, hasFocus, row, column);
                 setHorizontalAlignment(JLabel.CENTER);
+
+                // Fondo alternado para mejor legibilidad
+                if (isSelected) {
+                    c.setBackground(new Color(219, 234, 254)); // Azul claro selección
+                } else if (row % 2 == 0) {
+                    c.setBackground(Color.WHITE);
+                } else {
+                    c.setBackground(new Color(248, 250, 252)); // Gris muy suave
+                }
 
                 if (column == 1) {
                     String tipo = value.toString();
@@ -368,8 +563,90 @@ public class GestorInventarioERP extends JFrame {
         }
     }
 
+    /** Muestra un diálogo de error con diseño personalizado acorde al tema */
     private void mostrarErrorDialog(String mensaje) {
-        JOptionPane.showMessageDialog(this, mensaje, "Error Operacional", JOptionPane.ERROR_MESSAGE);
+        mostrarDialogoPersonalizado(mensaje, "Error Operacional", COLOR_DANGER, "✖");
+    }
+
+    /** Muestra un diálogo de éxito con diseño personalizado acorde al tema */
+    private void mostrarExitoDialog(String mensaje) {
+        mostrarDialogoPersonalizado(mensaje, "Operación Exitosa", COLOR_SUCCESS, "✔");
+    }
+
+    /** Crea y muestra un diálogo modal personalizado con diseño moderno */
+    private void mostrarDialogoPersonalizado(String mensaje, String titulo, Color colorTema, String icono) {
+        JDialog dialog = new JDialog(this, titulo, true);
+        dialog.setUndecorated(true);
+        dialog.setSize(420, 200);
+        dialog.setLocationRelativeTo(this);
+
+        JPanel mainPanel = new JPanel(new BorderLayout()) {
+            @Override
+            protected void paintComponent(Graphics g) {
+                super.paintComponent(g);
+                Graphics2D g2 = (Graphics2D) g.create();
+                g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+                g2.setColor(Color.WHITE);
+                g2.fillRoundRect(0, 0, getWidth(), getHeight(), 20, 20);
+                g2.setColor(COLOR_BORDER);
+                g2.drawRoundRect(0, 0, getWidth() - 1, getHeight() - 1, 20, 20);
+                g2.dispose();
+            }
+        };
+        mainPanel.setOpaque(false);
+        mainPanel.setBorder(new EmptyBorder(0, 0, 0, 0));
+
+        // Barra de color superior
+        JPanel barraColor = new JPanel();
+        barraColor.setBackground(colorTema);
+        barraColor.setPreferredSize(new Dimension(dialog.getWidth(), 6));
+        mainPanel.add(barraColor, BorderLayout.NORTH);
+
+        // Contenido central
+        JPanel contenido = new JPanel();
+        contenido.setLayout(new BoxLayout(contenido, BoxLayout.Y_AXIS));
+        contenido.setBackground(Color.WHITE);
+        contenido.setBorder(new EmptyBorder(20, 30, 10, 30));
+
+        // Icono grande
+        JLabel lblIcono = new JLabel(icono, JLabel.CENTER);
+        lblIcono.setFont(new Font("Segoe UI", Font.PLAIN, 36));
+        lblIcono.setForeground(colorTema);
+        lblIcono.setAlignmentX(Component.CENTER_ALIGNMENT);
+        contenido.add(lblIcono);
+        contenido.add(Box.createVerticalStrut(8));
+
+        // Título
+        JLabel lblTitulo = new JLabel(titulo, JLabel.CENTER);
+        lblTitulo.setFont(FONT_SUBTITLE);
+        lblTitulo.setForeground(COLOR_TEXT_MAIN);
+        lblTitulo.setAlignmentX(Component.CENTER_ALIGNMENT);
+        contenido.add(lblTitulo);
+        contenido.add(Box.createVerticalStrut(8));
+
+        // Mensaje
+        JLabel lblMensaje = new JLabel("<html><div style='text-align:center;width:300px;'>"
+                + mensaje + "</div></html>", JLabel.CENTER);
+        lblMensaje.setFont(FONT_BODY);
+        lblMensaje.setForeground(COLOR_TEXT_MUTED);
+        lblMensaje.setAlignmentX(Component.CENTER_ALIGNMENT);
+        contenido.add(lblMensaje);
+
+        mainPanel.add(contenido, BorderLayout.CENTER);
+
+        // Botón de cerrar
+        JPanel panelBoton = new JPanel(new FlowLayout(FlowLayout.CENTER));
+        panelBoton.setBackground(Color.WHITE);
+        panelBoton.setBorder(new EmptyBorder(5, 0, 15, 0));
+        BotonEstilizado btnCerrar = new BotonEstilizado("  Aceptar  ", colorTema);
+        btnCerrar.setPreferredSize(new Dimension(140, 36));
+        btnCerrar.addActionListener(ev -> dialog.dispose());
+        panelBoton.add(btnCerrar);
+        mainPanel.add(panelBoton, BorderLayout.SOUTH);
+
+        dialog.setContentPane(mainPanel);
+        dialog.setBackground(new Color(0, 0, 0, 0));
+        dialog.setVisible(true);
     }
 
     /** Componente personalizado: Tarjeta contenedora con bordes redondeados */
@@ -440,7 +717,7 @@ public class GestorInventarioERP extends JFrame {
             if (!isEnabled()) {
                 g2.setColor(COLOR_TEXT_MUTED);
             } else {
-                g2.setColor(isHovered ? fondoBase.brighter() : fondoBase);
+                g2.setColor(isHovered ? fondoBase.darker() : fondoBase);
             }
 
             g2.fillRoundRect(0, 0, getWidth(), getHeight(), 10, 10);
@@ -452,7 +729,23 @@ public class GestorInventarioERP extends JFrame {
     public static void main(String[] args) {
         SwingUtilities.invokeLater(() -> {
             try {
-                UIManager.setLookAndFeel(UIManager.getSystemLookAndFeelClassName());
+                // Usar CrossPlatform LAF para garantizar colores consistentes
+                // El System LAF (GTK en Linux) sobreescribe fondos/textos con
+                // colores oscuros del tema del sistema, haciendo ilegibles los campos.
+                UIManager.setLookAndFeel(UIManager.getCrossPlatformLookAndFeelClassName());
+
+                // Forzar colores claros para componentes de texto
+                UIManager.put("TextField.background", Color.WHITE);
+                UIManager.put("TextField.foreground", new Color(15, 23, 42));
+                UIManager.put("TextField.caretForeground", new Color(15, 23, 42));
+                UIManager.put("TextArea.background", Color.WHITE);
+                UIManager.put("TextArea.foreground", new Color(15, 23, 42));
+                UIManager.put("Table.background", Color.WHITE);
+                UIManager.put("Table.foreground", new Color(15, 23, 42));
+                UIManager.put("Table.selectionBackground", new Color(219, 234, 254));
+                UIManager.put("Table.selectionForeground", new Color(15, 23, 42));
+                UIManager.put("OptionPane.background", Color.WHITE);
+                UIManager.put("Panel.background", new Color(241, 245, 249));
             } catch (Exception e) {
                 // Fallback silencioso
             }
