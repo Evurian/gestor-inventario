@@ -65,6 +65,16 @@
                         <goals>
                             <goal>report</goal>
                         </goals>
+                        <configuration>
+
+                            <excludes>
+
+                                <exclude>com/inventario/App*</exclude>
+                                <exclude>com/inventario/GestorInventarioERP*</exclude>
+
+                            </excludes>
+
+                        </configuration>
                     </execution>
                 </executions>
             </plugin>
