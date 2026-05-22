@@ -48,6 +48,7 @@ public class GestorInventarioERP extends JFrame {
     private JTextField txtCodigo, txtNombre, txtPrecio, txtCantidadInicial;
     private JButton btnCrearProducto;
     private JButton btnActualizarProducto;
+    private JButton btnEliminarProducto;
 
     private JTextField txtCantidadOperacion;
     private JButton btnAgregarStock, btnExtraerStock;
@@ -63,7 +64,7 @@ public class GestorInventarioERP extends JFrame {
 
     public GestorInventarioERP() {
         setTitle("ERP - Sistema de Gestión de Inventario");
-        setSize(1250, 680);
+        setSize(1450, 680);
         setMinimumSize(new Dimension(1000, 620));
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         setLocationRelativeTo(null);
@@ -119,13 +120,16 @@ public class GestorInventarioERP extends JFrame {
         panelRegistro.add(txtCantidadInicial);
 
         panelRegistro.add(crearEtiqueta("")); // Espacio
-        JPanel panelAccionesProducto = new JPanel(new GridLayout(1, 2, 10, 0));
+        JPanel panelAccionesProducto = new JPanel(new GridLayout(1, 3, 10, 0));
         panelAccionesProducto.setOpaque(false);
         btnCrearProducto = new BotonEstilizado("Agregar", COLOR_ACCENT);
         btnActualizarProducto = new BotonEstilizado("Actualizar", COLOR_UPDATE);
         btnActualizarProducto.setEnabled(false);
+        btnEliminarProducto = new BotonEstilizado("Eliminar", COLOR_DANGER);
+        btnEliminarProducto.setEnabled(false);
         panelAccionesProducto.add(btnCrearProducto);
         panelAccionesProducto.add(btnActualizarProducto);
+        panelAccionesProducto.add(btnEliminarProducto);
         panelRegistro.add(panelAccionesProducto);
 
         gbc.gridx = 0;
@@ -449,6 +453,34 @@ public class GestorInventarioERP extends JFrame {
             }
         });
 
+        // --- ELIMINAR PRODUCTO ---
+        btnEliminarProducto.addActionListener(e -> {
+            if (productoActual == null) return;
+            boolean aceptar = mostrarConfirmacionDialog(
+                    "¿Está seguro de que desea eliminar el producto: " + productoActual.getNombre() + "?",
+                    "Confirmar Eliminación"
+            );
+            if (!aceptar) return;
+
+            // Eliminar de la lista global
+            listaProductos.remove(productoActual);
+
+            // Eliminar de la lista visual del sidebar
+            int index = listaProductosUI.getSelectedIndex();
+            if (index >= 0) {
+                modeloListaProductos.remove(index);
+            }
+
+            // Limpiar selección y campos
+            productoActual = null;
+            listaProductosUI.clearSelection();
+            desbloquearFormularioProducto();
+            limpiarFormularioProducto();
+            actualizarVista();
+
+            mostrarExitoDialog("Producto eliminado correctamente.");
+        });
+
         // --- SIDEBAR: Seleccionar producto de la lista ---
         listaProductosUI.addListSelectionListener(e -> {
             if (e.getValueIsAdjusting()) return;
@@ -487,6 +519,7 @@ public class GestorInventarioERP extends JFrame {
         txtCantidadInicial.setEditable(false);
         btnCrearProducto.setEnabled(false);
         btnActualizarProducto.setEnabled(true);
+        btnEliminarProducto.setEnabled(true);
     }
 
     /** Desbloquea los campos del formulario para crear un nuevo producto */
@@ -497,6 +530,7 @@ public class GestorInventarioERP extends JFrame {
         txtCantidadInicial.setEditable(true);
         btnCrearProducto.setEnabled(true);
         btnActualizarProducto.setEnabled(false);
+        btnEliminarProducto.setEnabled(false);
     }
 
     /** Limpia todos los campos del formulario de creación */
