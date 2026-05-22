@@ -29,6 +29,7 @@ public class GestorInventarioERP extends JFrame {
 
     private static final Color COLOR_SUCCESS = new Color(5, 150, 105); // Entradas (Verde - tonalidad moderada)
     private static final Color COLOR_DANGER = new Color(239, 68, 68); // Salidas (Rojo)
+    private static final Color COLOR_UPDATE = new Color(79, 70, 229); // Indigo/Morado para actualizar
 
     private static final Color COLOR_TEXT_MAIN = new Color(15, 23, 42); // Texto Principal
     private static final Color COLOR_TEXT_MUTED = new Color(100, 116, 139); // Texto Deshabilitado
@@ -46,6 +47,7 @@ public class GestorInventarioERP extends JFrame {
     // --- COMPONENTES DE LA INTERFAZ ---
     private JTextField txtCodigo, txtNombre, txtPrecio, txtCantidadInicial;
     private JButton btnCrearProducto;
+    private JButton btnActualizarProducto;
 
     private JTextField txtCantidadOperacion;
     private JButton btnAgregarStock, btnExtraerStock;
@@ -61,7 +63,7 @@ public class GestorInventarioERP extends JFrame {
 
     public GestorInventarioERP() {
         setTitle("ERP - Sistema de Gestión de Inventario");
-        setSize(1150, 680);
+        setSize(1250, 680);
         setMinimumSize(new Dimension(1000, 620));
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         setLocationRelativeTo(null);
@@ -117,8 +119,14 @@ public class GestorInventarioERP extends JFrame {
         panelRegistro.add(txtCantidadInicial);
 
         panelRegistro.add(crearEtiqueta("")); // Espacio
-        btnCrearProducto = new BotonEstilizado("Crear y Registrar", COLOR_ACCENT);
-        panelRegistro.add(btnCrearProducto);
+        JPanel panelAccionesProducto = new JPanel(new GridLayout(1, 2, 10, 0));
+        panelAccionesProducto.setOpaque(false);
+        btnCrearProducto = new BotonEstilizado("Agregar", COLOR_ACCENT);
+        btnActualizarProducto = new BotonEstilizado("Actualizar", COLOR_UPDATE);
+        btnActualizarProducto.setEnabled(false);
+        panelAccionesProducto.add(btnCrearProducto);
+        panelAccionesProducto.add(btnActualizarProducto);
+        panelRegistro.add(panelAccionesProducto);
 
         gbc.gridx = 0;
         gbc.gridy = 0;
@@ -311,7 +319,8 @@ public class GestorInventarioERP extends JFrame {
             try {
                 String codigo = txtCodigo.getText().trim();
                 String nombre = txtNombre.getText().trim();
-                double precio = Double.parseDouble(txtPrecio.getText().trim());
+                String precioText = txtPrecio.getText().trim();
+                double precio = Double.parseDouble(precioText);
                 int cantidad = Integer.parseInt(txtCantidadInicial.getText().trim());
 
                 // Verificar código duplicado
@@ -322,6 +331,27 @@ public class GestorInventarioERP extends JFrame {
                     }
                 }
 
+                // Verificar más de 3 decimales en el precio
+                int indexPunto = precioText.indexOf('.');
+                int numDecimales = 0;
+                if (indexPunto >= 0) {
+                    numDecimales = precioText.length() - indexPunto - 1;
+                }
+
+                if (numDecimales >= 3) {
+                    java.math.BigDecimal bd = new java.math.BigDecimal(precioText);
+                    java.math.BigDecimal rounded = bd.setScale(2, java.math.RoundingMode.HALF_UP);
+                    double precioRedondeado = rounded.doubleValue();
+
+                    String mensaje = String.format("El precio ingresado tiene más de 3 decimales. Se redondeará a 2 decimales (S/. %.2f). ¿Desea continuar con este precio?", precioRedondeado);
+                    boolean aceptar = mostrarConfirmacionDialog(mensaje, "Confirmar Redondeo de Precio");
+                    if (!aceptar) {
+                        return;
+                    }
+                    precio = precioRedondeado;
+                    txtPrecio.setText(String.valueOf(precio));
+                }
+
                 Producto nuevo = new Producto(codigo, nombre, precio, cantidad);
                 listaProductos.add(nuevo);
                 productoActual = nuevo;
@@ -329,7 +359,7 @@ public class GestorInventarioERP extends JFrame {
                 // Agregar a la lista visual del sidebar
                 modeloListaProductos.addElement(codigo + " - " + nombre);
 
-                bloquearFormularioProducto();
+                prepararFormularioParaEdicion();
                 actualizarVista();
 
                 // Seleccionar el nuevo producto en la lista
@@ -372,6 +402,53 @@ public class GestorInventarioERP extends JFrame {
             }
         });
 
+        // --- ACTUALIZAR PRODUCTO ---
+        btnActualizarProducto.addActionListener(e -> {
+            if (productoActual == null) return;
+            try {
+                String nombre = txtNombre.getText().trim();
+                String precioText = txtPrecio.getText().trim();
+                double precio = Double.parseDouble(precioText);
+
+                // Verificar más de 3 decimales en el precio
+                int indexPunto = precioText.indexOf('.');
+                int numDecimales = 0;
+                if (indexPunto >= 0) {
+                    numDecimales = precioText.length() - indexPunto - 1;
+                }
+
+                if (numDecimales > 3) {
+                    java.math.BigDecimal bd = new java.math.BigDecimal(precioText);
+                    java.math.BigDecimal rounded = bd.setScale(2, java.math.RoundingMode.HALF_UP);
+                    double precioRedondeado = rounded.doubleValue();
+
+                    String mensaje = String.format("El precio ingresado tiene más de 3 decimales. Se redondeará a 2 decimales (S/. %.2f). ¿Desea continuar con este precio?", precioRedondeado);
+                    boolean aceptar = mostrarConfirmacionDialog(mensaje, "Confirmar Redondeo de Precio");
+                    if (!aceptar) {
+                        return;
+                    }
+                    precio = precioRedondeado;
+                    txtPrecio.setText(String.valueOf(precio));
+                }
+
+                productoActual.setNombre(nombre);
+                productoActual.setPrecio(precio);
+
+                int index = listaProductosUI.getSelectedIndex();
+                if (index >= 0) {
+                    modeloListaProductos.set(index, productoActual.getCodigo() + " - " + productoActual.getNombre());
+                }
+
+                actualizarVista();
+                mostrarExitoDialog("Producto actualizado correctamente.");
+
+            } catch (NumberFormatException ex) {
+                mostrarErrorDialog("El valor del precio contiene formatos inválidos.");
+            } catch (IllegalArgumentException ex) {
+                mostrarErrorDialog(ex.getMessage());
+            }
+        });
+
         // --- SIDEBAR: Seleccionar producto de la lista ---
         listaProductosUI.addListSelectionListener(e -> {
             if (e.getValueIsAdjusting()) return;
@@ -379,7 +456,7 @@ public class GestorInventarioERP extends JFrame {
             if (index >= 0 && index < listaProductos.size()) {
                 productoActual = listaProductos.get(index);
                 cargarProductoEnFormulario(productoActual);
-                bloquearFormularioProducto();
+                prepararFormularioParaEdicion();
                 actualizarVista();
             }
         });
@@ -402,13 +479,14 @@ public class GestorInventarioERP extends JFrame {
         txtCantidadInicial.setText(String.valueOf(p.getCantidad()));
     }
 
-    /** Bloquea los campos del formulario de creación */
-    private void bloquearFormularioProducto() {
+    /** Configura los campos del formulario para edición del producto seleccionado */
+    private void prepararFormularioParaEdicion() {
         txtCodigo.setEditable(false);
-        txtNombre.setEditable(false);
-        txtPrecio.setEditable(false);
+        txtNombre.setEditable(true);
+        txtPrecio.setEditable(true);
         txtCantidadInicial.setEditable(false);
         btnCrearProducto.setEnabled(false);
+        btnActualizarProducto.setEnabled(true);
     }
 
     /** Desbloquea los campos del formulario para crear un nuevo producto */
@@ -418,6 +496,7 @@ public class GestorInventarioERP extends JFrame {
         txtPrecio.setEditable(true);
         txtCantidadInicial.setEditable(true);
         btnCrearProducto.setEnabled(true);
+        btnActualizarProducto.setEnabled(false);
     }
 
     /** Limpia todos los campos del formulario de creación */
@@ -647,6 +726,99 @@ public class GestorInventarioERP extends JFrame {
         dialog.setContentPane(mainPanel);
         dialog.setBackground(new Color(0, 0, 0, 0));
         dialog.setVisible(true);
+    }
+
+    /** Crea y muestra un diálogo modal de confirmación con diseño moderno y botones de Sí / No */
+    private boolean mostrarConfirmacionDialog(String mensaje, String titulo) {
+        JDialog dialog = new JDialog(this, titulo, true);
+        dialog.setUndecorated(true);
+        dialog.setSize(420, 220);
+        dialog.setLocationRelativeTo(this);
+
+        final boolean[] resultado = {false};
+
+        JPanel mainPanel = new JPanel(new BorderLayout()) {
+            @Override
+            protected void paintComponent(Graphics g) {
+                super.paintComponent(g);
+                Graphics2D g2 = (Graphics2D) g.create();
+                g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+                g2.setColor(Color.WHITE);
+                g2.fillRoundRect(0, 0, getWidth(), getHeight(), 20, 20);
+                g2.setColor(COLOR_BORDER);
+                g2.drawRoundRect(0, 0, getWidth() - 1, getHeight() - 1, 20, 20);
+                g2.dispose();
+            }
+        };
+        mainPanel.setOpaque(false);
+        mainPanel.setBorder(new EmptyBorder(0, 0, 0, 0));
+
+        // Barra de color superior
+        JPanel barraColor = new JPanel();
+        barraColor.setBackground(COLOR_ACCENT);
+        barraColor.setPreferredSize(new Dimension(dialog.getWidth(), 6));
+        mainPanel.add(barraColor, BorderLayout.NORTH);
+
+        // Contenido central
+        JPanel contenido = new JPanel();
+        contenido.setLayout(new BoxLayout(contenido, BoxLayout.Y_AXIS));
+        contenido.setBackground(Color.WHITE);
+        contenido.setBorder(new EmptyBorder(20, 30, 10, 30));
+
+        // Icono grande de interrogación
+        JLabel lblIcono = new JLabel("?", JLabel.CENTER);
+        lblIcono.setFont(new Font("Segoe UI", Font.BOLD, 36));
+        lblIcono.setForeground(COLOR_ACCENT);
+        lblIcono.setAlignmentX(Component.CENTER_ALIGNMENT);
+        contenido.add(lblIcono);
+        contenido.add(Box.createVerticalStrut(8));
+
+        // Título
+        JLabel lblTitulo = new JLabel(titulo, JLabel.CENTER);
+        lblTitulo.setFont(FONT_SUBTITLE);
+        lblTitulo.setForeground(COLOR_TEXT_MAIN);
+        lblTitulo.setAlignmentX(Component.CENTER_ALIGNMENT);
+        contenido.add(lblTitulo);
+        contenido.add(Box.createVerticalStrut(8));
+
+        // Mensaje
+        JLabel lblMensaje = new JLabel("<html><div style='text-align:center;width:300px;'>"
+                + mensaje + "</div></html>", JLabel.CENTER);
+        lblMensaje.setFont(FONT_BODY);
+        lblMensaje.setForeground(COLOR_TEXT_MUTED);
+        lblMensaje.setAlignmentX(Component.CENTER_ALIGNMENT);
+        contenido.add(lblMensaje);
+
+        mainPanel.add(contenido, BorderLayout.CENTER);
+
+        // Botones de Sí / No
+        JPanel panelBotones = new JPanel(new FlowLayout(FlowLayout.CENTER, 15, 0));
+        panelBotones.setBackground(Color.WHITE);
+        panelBotones.setBorder(new EmptyBorder(5, 0, 15, 0));
+
+        BotonEstilizado btnSi = new BotonEstilizado("Sí, aceptar", COLOR_SUCCESS);
+        btnSi.setPreferredSize(new Dimension(120, 36));
+        btnSi.addActionListener(ev -> {
+            resultado[0] = true;
+            dialog.dispose();
+        });
+
+        BotonEstilizado btnNo = new BotonEstilizado("No, cancelar", COLOR_DANGER);
+        btnNo.setPreferredSize(new Dimension(120, 36));
+        btnNo.addActionListener(ev -> {
+            resultado[0] = false;
+            dialog.dispose();
+        });
+
+        panelBotones.add(btnSi);
+        panelBotones.add(btnNo);
+        mainPanel.add(panelBotones, BorderLayout.SOUTH);
+
+        dialog.setContentPane(mainPanel);
+        dialog.setBackground(new Color(0, 0, 0, 0));
+        dialog.setVisible(true);
+
+        return resultado[0];
     }
 
     /** Componente personalizado: Tarjeta contenedora con bordes redondeados */
